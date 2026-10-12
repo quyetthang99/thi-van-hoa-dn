@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thi trắc nghiệm Văn hóa Doanh nghiệp - Quyết Thắng - Điện lực Văn Bàn</title>
+    <title>Thi trắc nghiệm Văn hóa Doanh nghiệp - Quyết Thắng - Đội QLKV Văn Bàn</title>
     <style>
         :root { --primary: #0284c7; --bg: #f0f9ff; --correct: #16a34a; --wrong: #ef4444; --warning: #f59e0b; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .app-container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
+        .app-container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 800px; position: relative;}
         
         h1, h2, h3 { text-align: center; color: var(--primary); }
         .author-text { text-align: center; color: #64748b; font-style: italic; font-weight: bold; font-size: 1.1rem; margin-top: 5px; margin-bottom: 25px; }
@@ -45,12 +45,16 @@
         /* Search Input */
         #search-input { width: 100%; padding: 15px; font-size: 1.1rem; border: 2px solid var(--primary); border-radius: 8px; margin-bottom: 20px; outline: none; box-sizing: border-box; }
         #search-input:focus { border-color: #14b8a6; box-shadow: 0 0 8px rgba(20, 184, 166, 0.3); }
-        .category-tag { font-size: 0.85rem; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; color: #475569; margin-bottom: 8px; display: inline-block; font-weight: bold; }
 
         /* Quiz Mode */
         .progress-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .progress { font-size: 1.1rem; color: #64748b; font-weight: bold; }
         
+        /* ĐỒNG HỒ ĐẾM NGƯỢC */
+        .timer-badge { background: #fee2e2; color: #dc2626; padding: 8px 15px; border-radius: 20px; font-weight: bold; font-size: 1.1rem; border: 2px solid #fca5a5; display: flex; align-items: center; gap: 5px;}
+        .timer-warning { animation: blink 1s infinite; background: #ef4444; color: white;}
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
         #question-box { margin-bottom: 20px; font-weight: 600; font-size: 1.2rem; color: #1e293b; line-height: 1.5; min-height: 60px; }
         .option { display: block; padding: 15px; margin: 10px 0; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
         .option:hover { border-color: var(--primary); background: #f0f7ff; }
@@ -73,7 +77,7 @@
 <div class="app-container">
     <div id="menu-ui">
         <h1 style="margin-bottom: 5px;">Thi trắc nghiệm Văn hóa Doanh nghiệp</h1>
-        <p class="author-text">Design by Quyết Thắng - Điện lực Văn Bàn - 0976297555</p>
+        <p class="author-text">Design by Quyết Thắng - Đội QLKV Văn Bàn - 0976297555</p>
         
         <div class="dropdown-container">
             <label for="quiz-selector">Chọn Bộ Đề Ôn Thi:</label>
@@ -84,8 +88,8 @@
         
         <div class="menu-screen">
             <button class="menu-btn btn-study" onclick="startStudyMode()">📚 Chế độ Học Tập (Xem toàn bộ đề)</button>
-            <button class="menu-btn btn-quiz" onclick="startQuizMode(false)">🎯 Thi Thử Ngẫu Nhiên (50 câu)</button>
-            <button class="menu-btn btn-full" onclick="startQuizMode(true)">🚀 Thi Thử Toàn Bộ (Full câu hỏi)</button>
+            <button class="menu-btn btn-quiz" onclick="startQuizMode(false)">🎯 Thi Thử Ngẫu Nhiên (50 câu - Có bấm giờ)</button>
+            <button class="menu-btn btn-full" onclick="startQuizMode(true)">🚀 Thi Thử Toàn Bộ (Không bấm giờ)</button>
             <button class="menu-btn btn-search" onclick="startSearchMode()">🔍 Tìm Kiếm Câu Hỏi</button>
         </div>
     </div>
@@ -106,6 +110,10 @@
     <div id="quiz-ui" class="hidden">
         <div class="progress-container">
             <button class="btn btn-back" style="margin-bottom: 0;" onclick="goHome()">⬅ Dừng thi</button>
+            
+            <!-- ĐỒNG HỒ ĐẾM NGƯỢC -->
+            <div id="timer-display" class="timer-badge hidden">⏳ <span id="time-left">50:00</span></div>
+            
             <div class="progress" id="progress">Câu: 1/50</div>
         </div>
         
@@ -116,7 +124,7 @@
             <button id="prev-btn" class="btn nav-btn btn-prev" onclick="prevQuestion()">⬅ Trước</button>
             <button id="next-btn" class="btn nav-btn" onclick="nextQuestion()">Sau ➡</button>
         </div>
-        <button id="submit-btn" class="btn btn-submit" onclick="submitQuiz()">Nộp bài & Xem kết quả</button>
+        <button id="submit-btn" class="btn btn-submit" onclick="submitQuiz(false)">Nộp bài & Xem kết quả</button>
     </div>
 
     <div id="result-ui" class="hidden result-screen">
@@ -138,6 +146,10 @@
     let currentQuestions = [];
     let userAnswers = [];
     let currentIdx = 0;
+    
+    // BIẾN CHO ĐỒNG HỒ
+    let timerInterval = null;
+    let timeRemaining = 0; // Tính bằng giây
 
     const menuUI = document.getElementById('menu-ui');
     const studyUI = document.getElementById('study-ui');
@@ -162,6 +174,7 @@
     };
 
     function goHome() {
+        stopTimer(); // Dừng đồng hồ nếu đang chạy
         studyUI.classList.add('hidden');
         quizUI.classList.add('hidden');
         resultUI.classList.add('hidden');
@@ -175,7 +188,6 @@
         return database[selector.value];
     }
 
-    // --- CHỨC NĂNG TÌM KIẾM ĐÃ CẬP NHẬT ---
     function startSearchMode() {
         const selectedCategory = document.getElementById('quiz-selector').value;
         if (!selectedCategory || typeof database === 'undefined') {
@@ -184,10 +196,7 @@
         
         menuUI.classList.add('hidden');
         searchUI.classList.remove('hidden');
-        
-        // Cập nhật tiêu đề để biết đang tìm trong bộ đề nào
         document.getElementById('search-title').innerText = `Tra Cứu: ${selectedCategory}`;
-        
         const searchInput = document.getElementById('search-input');
         const resultsContainer = document.getElementById('search-results');
         
@@ -208,20 +217,15 @@
 
         let resultsHTML = '';
         let count = 0;
-        
-        // Chỉ lấy dữ liệu của bộ đề đã chọn
         const dataToSearch = database[selectedCategory];
 
         dataToSearch.forEach((item) => {
             if (item.q.toLowerCase().includes(query)) {
                 count++;
-                
                 let html = `
                     <div class="list-item">
                         <div class="q-text">${item.q}</div>
                 `;
-                
-                // In ra toàn bộ đáp án A, B, C, D để so sánh
                 ['a', 'b', 'c', 'd'].forEach(key => {
                     if(item[key]) {
                         if (key === item.correct) {
@@ -231,7 +235,6 @@
                         }
                     }
                 });
-
                 html += `</div>`;
                 resultsHTML += html;
             }
@@ -244,14 +247,12 @@
         }
     }
 
-    // --- CHẾ ĐỘ HỌC TẬP ---
     function startStudyMode() {
         currentQuizData = getSelectedQuizData();
         if (!currentQuizData) return alert("Vui lòng chọn bộ đề hợp lệ!");
 
         menuUI.classList.add('hidden');
         studyUI.classList.remove('hidden');
-        
         document.getElementById('study-title').innerText = `Ôn Tập: ${document.getElementById('quiz-selector').value}`;
         
         const list = document.getElementById('study-list');
@@ -260,22 +261,56 @@
         currentQuizData.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = 'list-item';
-            
             let html = `<div class="q-text">Câu ${index + 1}: ${item.q}</div>`;
-            
             ['a', 'b', 'c', 'd'].forEach(key => {
                 if(item[key]) {
-                    if (key === item.correct) {
-                        html += `<div class="ans-box ans-correct">✔ <strong>${key.toUpperCase()}. ${item[key]}</strong></div>`;
-                    } else {
-                        html += `<div class="ans-box ans-neutral">${key.toUpperCase()}. ${item[key]}</div>`;
-                    }
+                    if (key === item.correct) html += `<div class="ans-box ans-correct">✔ <strong>${key.toUpperCase()}. ${item[key]}</strong></div>`;
+                    else html += `<div class="ans-box ans-neutral">${key.toUpperCase()}. ${item[key]}</div>`;
                 }
             });
-
             div.innerHTML = html;
             list.appendChild(div);
         });
+    }
+
+    // --- LOGIC ĐỒNG HỒ ---
+    function formatTime(seconds) {
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function startTimer(minutes) {
+        timeRemaining = minutes * 60;
+        const timerDisplay = document.getElementById('timer-display');
+        const timeText = document.getElementById('time-left');
+        
+        timerDisplay.classList.remove('hidden', 'timer-warning');
+        timeText.innerText = formatTime(timeRemaining);
+
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            timeText.innerText = formatTime(timeRemaining);
+
+            if (timeRemaining <= 60) {
+                // Đổi màu cảnh báo khi còn dưới 1 phút
+                timerDisplay.classList.add('timer-warning');
+            }
+
+            if (timeRemaining <= 0) {
+                stopTimer();
+                alert("⏳ ĐÃ HẾT GIỜ LÀM BÀI! Hệ thống sẽ tự động nộp bài của bạn.");
+                submitQuiz(true); // true = nộp bài do hết giờ, không hỏi xác nhận
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        document.getElementById('timer-display').classList.add('hidden');
     }
 
     // --- CHẾ ĐỘ THI THỬ ---
@@ -292,6 +327,14 @@
         
         menuUI.classList.add('hidden');
         quizUI.classList.remove('hidden');
+        
+        // Bật đồng hồ nếu là thi 50 câu (Không phải full)
+        if (!isFull) {
+            startTimer(50); // Cài đặt thời gian: 50 phút
+        } else {
+            stopTimer(); // Đảm bảo tắt đồng hồ nếu thi full
+        }
+
         loadQuestion();
     }
 
@@ -327,12 +370,17 @@
     function prevQuestion() { if (currentIdx > 0) { currentIdx--; loadQuestion(); } }
     function nextQuestion() { if (currentIdx < currentQuestions.length - 1) { currentIdx++; loadQuestion(); } }
 
-    function submitQuiz() {
-        const unanswered = userAnswers.filter(ans => ans === null).length;
-        if (unanswered > 0) {
-            const confirmSubmit = confirm(`Bạn còn ${unanswered} câu chưa làm. Bạn có chắc chắn muốn nộp bài?`);
-            if (!confirmSubmit) return; 
+    function submitQuiz(isTimeOut = false) {
+        // Nếu do người dùng tự bấm nộp bài, kiểm tra xem có câu nào chưa làm không
+        if (!isTimeOut) {
+            const unanswered = userAnswers.filter(ans => ans === null).length;
+            if (unanswered > 0) {
+                const confirmSubmit = confirm(`Bạn còn ${unanswered} câu chưa làm. Bạn có chắc chắn muốn nộp bài?`);
+                if (!confirmSubmit) return; 
+            }
         }
+
+        stopTimer(); // Dừng đồng hồ lại
 
         let score = 0;
         for (let i = 0; i < currentQuestions.length; i++) {
