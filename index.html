@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thi trắc nghiệm Văn hóa Doanh nghiệp - Quyết Thắng - Đội QLKV Văn Bàn</title>
+    <title>Thi trắc nghiệm Văn hóa Doanh nghiệp - Quyết Thắng - Điện lực Văn Bàn</title>
     <style>
         :root { --primary: #0284c7; --bg: #f0f9ff; --correct: #16a34a; --wrong: #ef4444; --warning: #f59e0b; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -26,6 +26,15 @@
         .btn-full { background: #8b5cf6; } 
         .btn-search { background: #14b8a6; } 
         .menu-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+        /* Lịch sử thi (Lưu tạm) */
+        .history-card { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 15px; margin-top: 25px; text-align: left; }
+        .history-card h3 { color: #0f172a; margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; text-align: left;}
+        .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 8px; font-weight: 500; transition: 0.2s;}
+        .hist-item:hover { border-color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .hist-score { color: #16a34a; font-weight: bold; font-size: 1.2rem; background: #dcfce7; padding: 5px 10px; border-radius: 6px;}
+        .hist-time { color: #f59e0b; font-size: 0.95rem; margin-top: 4px;}
+        .hist-name { color: #475569; font-size: 0.9rem; }
 
         /* General Buttons */
         .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; background: var(--primary); transition: 0.3s; }
@@ -77,7 +86,7 @@
 <div class="app-container">
     <div id="menu-ui">
         <h1 style="margin-bottom: 5px;">Thi trắc nghiệm Văn hóa Doanh nghiệp</h1>
-        <p class="author-text">Design by Quyết Thắng - Đội QLKV Văn Bàn - 0976297555</p>
+        <p class="author-text">Design by Quyết Thắng - Điện lực Văn Bàn - 0976297555</p>
         
         <div class="dropdown-container">
             <label for="quiz-selector">Chọn Bộ Đề Ôn Thi:</label>
@@ -88,9 +97,15 @@
         
         <div class="menu-screen">
             <button class="menu-btn btn-study" onclick="startStudyMode()">📚 Chế độ Học Tập (Xem toàn bộ đề)</button>
-            <button class="menu-btn btn-quiz" onclick="startQuizMode(false)">🎯 Thi Thử Ngẫu Nhiên (50 câu - Có bấm giờ)</button>
-            <button class="menu-btn btn-full" onclick="startQuizMode(true)">🚀 Thi Thử Toàn Bộ (Không bấm giờ)</button>
+            <button class="menu-btn btn-quiz" onclick="startQuizMode(false)">🎯 Thi Thử Ngẫu Nhiên (50 câu )</button>
+            <button class="menu-btn btn-full" onclick="startQuizMode(true)">🚀 Thi Thử Toàn Bộ </button>
             <button class="menu-btn btn-search" onclick="startSearchMode()">🔍 Tìm Kiếm Câu Hỏi</button>
+        </div>
+
+        <!-- KHU VỰC LỊCH SỬ THI -->
+        <div id="session-history" class="history-card hidden">
+            <h3>📜 Lịch sử làm bài (Sẽ xóa khi F5)</h3>
+            <div id="session-history-list"></div>
         </div>
     </div>
 
@@ -147,9 +162,12 @@
     let userAnswers = [];
     let currentIdx = 0;
     
-    // BIẾN CHO ĐỒNG HỒ
+    // BIẾN CHO ĐỒNG HỒ VÀ LỊCH SỬ
     let timerInterval = null;
-    let timeRemaining = 0; // Tính bằng giây
+    let timeRemaining = 0; 
+    let quizStartTime = 0; // Để tính thời gian thực tế đã dùng
+    let isTimedQuiz = false;
+    let sessionHistory = []; // Mảng lưu lịch sử làm bài tạm thời
 
     const menuUI = document.getElementById('menu-ui');
     const studyUI = document.getElementById('study-ui');
@@ -174,7 +192,7 @@
     };
 
     function goHome() {
-        stopTimer(); // Dừng đồng hồ nếu đang chạy
+        stopTimer(); 
         studyUI.classList.add('hidden');
         quizUI.classList.add('hidden');
         resultUI.classList.add('hidden');
@@ -293,14 +311,13 @@
             timeText.innerText = formatTime(timeRemaining);
 
             if (timeRemaining <= 60) {
-                // Đổi màu cảnh báo khi còn dưới 1 phút
                 timerDisplay.classList.add('timer-warning');
             }
 
             if (timeRemaining <= 0) {
                 stopTimer();
                 alert("⏳ ĐÃ HẾT GIỜ LÀM BÀI! Hệ thống sẽ tự động nộp bài của bạn.");
-                submitQuiz(true); // true = nộp bài do hết giờ, không hỏi xác nhận
+                submitQuiz(true); 
             }
         }, 1000);
     }
@@ -324,15 +341,16 @@
         
         userAnswers = new Array(currentQuestions.length).fill(null);
         currentIdx = 0;
+        isTimedQuiz = !isFull;
+        quizStartTime = Date.now(); // Ghi nhận giờ bắt đầu thi
         
         menuUI.classList.add('hidden');
         quizUI.classList.remove('hidden');
         
-        // Bật đồng hồ nếu là thi 50 câu (Không phải full)
-        if (!isFull) {
-            startTimer(50); // Cài đặt thời gian: 50 phút
+        if (isTimedQuiz) {
+            startTimer(50); // Mặc định 50 phút
         } else {
-            stopTimer(); // Đảm bảo tắt đồng hồ nếu thi full
+            stopTimer(); 
         }
 
         loadQuestion();
@@ -371,7 +389,6 @@
     function nextQuestion() { if (currentIdx < currentQuestions.length - 1) { currentIdx++; loadQuestion(); } }
 
     function submitQuiz(isTimeOut = false) {
-        // Nếu do người dùng tự bấm nộp bài, kiểm tra xem có câu nào chưa làm không
         if (!isTimeOut) {
             const unanswered = userAnswers.filter(ans => ans === null).length;
             if (unanswered > 0) {
@@ -380,7 +397,7 @@
             }
         }
 
-        stopTimer(); // Dừng đồng hồ lại
+        stopTimer(); 
 
         let score = 0;
         for (let i = 0; i < currentQuestions.length; i++) {
@@ -393,14 +410,38 @@
         quizUI.classList.add('hidden');
         resultUI.classList.remove('hidden');
         
+        // 1. Tính toán thời gian thực tế đã làm bài
+        let timeTakenMs = Date.now() - quizStartTime;
+        let m = Math.floor(timeTakenMs / 60000);
+        let s = Math.floor((timeTakenMs % 60000) / 1000);
+        let timeStr = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+        // 2. Lấy thông tin bài thi để ghi lịch sử
+        let quizName = document.getElementById('quiz-selector').options[document.getElementById('quiz-selector').selectedIndex].text;
+        let modeName = isTimedQuiz ? "50 Câu" : "Toán bộ";
+        
+        // 3. Đẩy kết quả vào mảng lịch sử (Đẩy lên đầu mảng để lần mới nhất hiện lên trên cùng)
+        sessionHistory.unshift({
+            quizName: quizName,
+            mode: modeName,
+            score: score,
+            total: currentQuestions.length,
+            time: timeStr
+        });
+
+        // 4. Cập nhật giao diện Lịch sử ở màn hình Menu
+        updateHistoryUI();
+
+        // 5. Hiển thị điểm số ở trang Result
         document.getElementById('final-score').innerText = `${score} / ${currentQuestions.length}`;
         
         const percentage = (score / currentQuestions.length) * 100;
         const feedback = document.getElementById('feedback');
-        if (percentage >= 80) feedback.innerText = "Tuyệt vời! Bạn đã nắm rất vững kiến thức.";
-        else if (percentage >= 50) feedback.innerText = "Khá tốt! Chú ý xem lại những câu làm sai bên dưới nhé.";
-        else feedback.innerText = "Cần cố gắng hơn! Hãy đọc kỹ đáp án đúng bên dưới.";
+        if (percentage >= 80) feedback.innerText = `Tuyệt vời! Thời gian làm bài: ${timeStr}`;
+        else if (percentage >= 50) feedback.innerText = `Khá tốt! Thời gian làm bài: ${timeStr}`;
+        else feedback.innerText = `Cần cố gắng hơn! Thời gian làm bài: ${timeStr}`;
 
+        // 6. Hiển thị chi tiết đáp án
         const reviewList = document.getElementById('review-list');
         reviewList.innerHTML = '';
 
@@ -429,6 +470,26 @@
             div.innerHTML = html;
             reviewList.appendChild(div);
         });
+    }
+
+    // --- HÀM CẬP NHẬT GIAO DIỆN LỊCH SỬ ---
+    function updateHistoryUI() {
+        const histSection = document.getElementById('session-history');
+        const histList = document.getElementById('session-history-list');
+        
+        if (sessionHistory.length > 0) {
+            histSection.classList.remove('hidden');
+            
+            histList.innerHTML = sessionHistory.map((item, index) => `
+                <div class="hist-item">
+                    <div>
+                        <div><strong>Lần ${sessionHistory.length - index}</strong> - <span class="hist-name">${item.quizName} (${item.mode})</span></div>
+                        <div class="hist-time">⏱ Thời gian: ${item.time}</div>
+                    </div>
+                    <div class="hist-score">🎯 ${item.score}/${item.total}đ</div>
+                </div>
+            `).join('');
+        }
     }
 </script>
 </body>
